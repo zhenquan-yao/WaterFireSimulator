@@ -1,0 +1,89 @@
+#
+# SPDX-FileCopyrightText: 2026 M5Stack Technology CO LTD
+#
+# SPDX-License-Identifier: MIT
+# Packaging and install layout for CardputerZero Debian builds.
+
+include(GNUInstallDirs)
+
+set(APP_DISPLAY_NAME "Water & Fire" CACHE STRING "Human-readable application name used by launchers" FORCE)
+set(APP_PACKAGE_BASENAME "WaterFireSimulator" CACHE STRING "Filesystem-safe Debian package filename prefix")
+set(APP_DEBIAN_REVISION "m5stack1" CACHE STRING "Debian package revision/vendor suffix")
+set(APP_DEBIAN_ARCHITECTURE "arm64" CACHE STRING "Debian package architecture")
+set(APP_MAINTAINER "zhenquan-yao <zhenquan-yao@users.noreply.github.com>" CACHE STRING "Debian package maintainer" FORCE)
+set(APP_PACKAGE_DESCRIPTION "Interactive IMU-controlled water and fire simulator" CACHE STRING "Debian package summary" FORCE)
+set(APP_INSTALL_SYSTEMD_SERVICE OFF CACHE BOOL "Install a systemd service file for embedded deployments")
+
+set(APP_GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated/package")
+configure_file(
+    "${CMAKE_CURRENT_LIST_DIR}/templates/app.desktop.in"
+    "${APP_GENERATED_DIR}/${PROJECT_NAME}.desktop"
+    @ONLY
+)
+
+if(APP_INSTALL_SYSTEMD_SERVICE)
+    configure_file(
+        "${CMAKE_CURRENT_LIST_DIR}/templates/app.service.in"
+        "${APP_GENERATED_DIR}/${PROJECT_NAME}.service"
+        @ONLY
+    )
+endif()
+
+install(TARGETS ${PROJECT_NAME}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/inter-semibold.ttf"
+    DESTINATION "${CMAKE_INSTALL_DATADIR}/${APP_NAME}/fonts"
+)
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/assets/images/water-fire-simulator-v2.png"
+    DESTINATION "${CMAKE_INSTALL_DATADIR}/APPLaunch/share/images"
+)
+
+install(FILES "${APP_GENERATED_DIR}/${PROJECT_NAME}.desktop"
+    DESTINATION "${CMAKE_INSTALL_DATADIR}/APPLaunch/applications"
+)
+
+if(APP_INSTALL_SYSTEMD_SERVICE)
+    install(FILES "${APP_GENERATED_DIR}/${PROJECT_NAME}.service"
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/systemd/system"
+    )
+endif()
+
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/README.md"
+    DESTINATION "${CMAKE_INSTALL_DOCDIR}"
+)
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/LICENSE.txt"
+    DESTINATION "${CMAKE_INSTALL_DOCDIR}"
+    RENAME "third-party-assets-license.txt"
+)
+
+set(CPACK_GENERATOR "DEB")
+set(CPACK_PACKAGING_INSTALL_PREFIX "/usr")
+set(CPACK_OUTPUT_FILE_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/dist")
+set(CPACK_PACKAGE_NAME "${APP_PACKAGE_BASENAME}")
+set(CPACK_PACKAGE_VENDOR "zhenquan-yao")
+set(CPACK_PACKAGE_CONTACT "${APP_MAINTAINER}")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "${APP_PACKAGE_DESCRIPTION}")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+set(CPACK_PACKAGE_FILE_NAME "${APP_PACKAGE_BASENAME}_${PROJECT_VERSION}_${APP_DEBIAN_REVISION}_${APP_DEBIAN_ARCHITECTURE}")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+
+string(TOLOWER "${APP_PACKAGE_BASENAME}" APP_DEBIAN_PACKAGE_NAME)
+string(REGEX REPLACE "[^a-z0-9+.-]" "-" APP_DEBIAN_PACKAGE_NAME "${APP_DEBIAN_PACKAGE_NAME}")
+set(CPACK_DEBIAN_PACKAGE_NAME "${APP_DEBIAN_PACKAGE_NAME}")
+set(CPACK_DEBIAN_PACKAGE_VERSION "${PROJECT_VERSION}")
+set(CPACK_DEBIAN_PACKAGE_RELEASE "${APP_DEBIAN_REVISION}")
+set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "${APP_DEBIAN_ARCHITECTURE}")
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "${APP_MAINTAINER}")
+set(CPACK_DEBIAN_PACKAGE_SECTION "utils")
+set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
+set(APP_DEBIAN_DEPENDS "libc6, libstdc++6, libgcc-s1, libfreetype6, libpng16-16, libjpeg62-turbo, zlib1g")
+if(FMT_INCLUDE_DIR AND FMT_LIBRARY)
+    string(APPEND APP_DEBIAN_DEPENDS ", libfmt10")
+endif()
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "${APP_DEBIAN_DEPENDS}")
+set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS OFF)
+set(CPACK_DEBIAN_PACKAGE_CONTROL_STRICT_PERMISSION TRUE)
+
+include(CPack)
